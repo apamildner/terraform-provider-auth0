@@ -55,7 +55,7 @@ func newGuardian() *schema.Resource {
 						},
 						"options": {
 							Type:     schema.TypeList,
-							Optional: false,
+							Optional: true,
 							MaxItems: 1,
 							MinItems: 1,
 							Elem: &schema.Resource{

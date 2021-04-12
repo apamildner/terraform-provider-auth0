@@ -16,7 +16,6 @@ the options available for MFA.
 resource "auth0_guardian" "default" {
   policy = "all-applications"
   phone {
-    enabled       = false
     provider      = "auth0"
     message_types = ["sms"]
     options {
@@ -38,7 +37,6 @@ Arguments accepted by this resource include:
 
 `phone` supports the following arguments:
 
-* `enabled` - (Required) String. API User for your email service.
 * `provider` - (Required) String, Case-sensitive. Provider to use, one of `auth0`, `twilio` or `phone-message-hook`.
 * `message_types` - (Required) List(String). Message types to use, array of `phone` and or `voice`. Adding both to array should enable the user to choose.
 * `secret_access_key` - (Optional) String, Case-sensitive. AWS Secret Key. Will always be encrypted in our database. Used only for AWS.
@@ -60,4 +58,4 @@ Arguments accepted by this resource include:
 * `messaging_service_sid`(Optional) String.
 
 ### Phone message hook
-No options. Custom code has to be written in a phone message hook. See [phone message hook docs](https://auth0.com/docs/hooks/extensibility-points/send-phone-message).
+Options has to be empty. Custom code has to be written in a phone message hook. See [phone message hook docs](https://auth0.com/docs/hooks/extensibility-points/send-phone-message).
