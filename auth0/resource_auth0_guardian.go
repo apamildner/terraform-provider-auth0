@@ -95,11 +95,7 @@ func newGuardian() *schema.Resource {
 	}
 }
 func createGuardian(d *schema.ResourceData, m interface{}) error {
-	api := m.(*management.Management)
 	d.SetId(resource.UniqueId())
-	//Todo: Disable depending on which factors are missing from resourceData
-	_, ok := d.GetOk("phone")
-	api.Guardian.MultiFactor.Phone.Enable(ok)
 	return updateGuardian(d, m)
 }
 
@@ -111,6 +107,7 @@ func deleteGuardian(d *schema.ResourceData, m interface{}) error {
 }
 func updateGuardian(d *schema.ResourceData, m interface{}) (err error) {
 	api := m.(*management.Management)
+
 	if d.HasChange("policy") {
 		p := d.Get("policy").(string)
 		if p == "never" {
@@ -121,11 +118,13 @@ func updateGuardian(d *schema.ResourceData, m interface{}) (err error) {
 		}
 	}
 	//TODO: Extend for other MFA types
-	if _, ok := d.GetOk("phone"); ok {
-		err = configurePhone(d, api)
-	}
-	if err != nil {
-		return err
+	if _, ok := d.GetOk("phone"); ok || hasPhoneBlockPresentInNewState(d)  {
+		api.Guardian.MultiFactor.Phone.Enable(true)
+		if err := configurePhone(d, api); err != nil {
+			return err
+		}
+	} else {
+		api.Guardian.MultiFactor.Phone.Enable(false)
 	}
 	return readGuardian(d, m)
 }
@@ -152,7 +151,7 @@ func configurePhone(d *schema.ResourceData, api *management.Management) (err err
 	}
 
 	mtypes := typeAssertToStringArray(Slice(md, "message_types"))
-	if err := api.Guardian.MultiFactor.Phone.UpdateMessageTypes(&management.PhoneMessageTypes{MessageTypes: &mtypes}); err != nil {
+	if err := api.Guardian.MultiFactor.Phone.UpdateMessageTypes(&management.PhoneMessageTypes{MessageTypes: mtypes}); err != nil {
 		return err
 	}
 
@@ -235,14 +234,25 @@ func readGuardian(d *schema.ResourceData, m interface{}) error {
 	if err != nil {
 		return err
 	}
-	if _, ok := d.GetOk("phone"); ok {
+	if _, ok := d.GetOk("phone"); ok || hasPhoneBlockPresentInNewState(d) {
 		phoneData["options"] = []interface{}{md}
 		err = d.Set("phone", []interface{}{phoneData})
+	} else {
+		d.Set("phone", nil)
 	}
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func hasPhoneBlockPresentInNewState(d *schema.ResourceData) bool {
+	if ok := d.HasChange("phone"); ok {
+		_, n := d.GetChange("phone")
+		newState := n.([]interface{})
+		return len(newState) > 0
+	}
+	return false
 }
 
 func flattenAuth0Options(api *management.Management) (map[string]interface{}, error) {
@@ -275,10 +285,14 @@ func flattenTwilioOptions(api *management.Management) (map[string]interface{}, e
 	return md, nil
 }
 
-func typeAssertToStringArray(from []interface{}) []string {
-	stringArray := make([]string, len(from))
+func typeAssertToStringArray(from []interface{}) *[]string {
+	length := len(from)
+	if length < 1 {
+		return nil
+	}
+	stringArray := make([]string, length)
 	for i, v := range from {
 		stringArray[i] = v.(string)
 	}
-	return stringArray
+	return &stringArray
 }

@@ -26,13 +26,19 @@ func TestAccGuardian(t *testing.T) {
 					resource.TestCheckResourceAttr("auth0_guardian.foo", "phone.0.options.0.auth_token", "bar"),
 				),
 			},
-
 			{
 				Config: testAccConfigureTwilioUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("auth0_guardian.foo", "policy", "all-applications"),
+					resource.TestCheckNoResourceAttr("auth0_guardian.foo", "phone"),
+				),
+			},
+
+			{
+				Config: testAccConfigureTwilio,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("auth0_guardian.foo", "policy", "all-applications"),
 					resource.TestCheckResourceAttr("auth0_guardian.foo", "phone.0.message_types.0", "sms"),
-					resource.TestCheckResourceAttr("auth0_guardian.foo", "phone.0.message_types.1", "voice"),
 					resource.TestCheckResourceAttr("auth0_guardian.foo", "phone.0.provider", "twilio"),
 					resource.TestCheckResourceAttr("auth0_guardian.foo", "phone.0.options.0.enrollment_message", "enroll foo"),
 					resource.TestCheckResourceAttr("auth0_guardian.foo", "phone.0.options.0.verification_message", "verify foo"),
@@ -132,18 +138,6 @@ const testAccConfigureTwilioUpdate = `
 
 resource "auth0_guardian" "foo" {
   policy = "all-applications"
-  phone {
-	provider = "twilio"
-	message_types = ["sms","voice"]
-	options {
-		enrollment_message = "enroll foo"
-		verification_message = "verify foo"
-		from = "from bar"
-		messaging_service_sid = "foo"
-		auth_token = "bar"
-		sid = "foo"
-	}
-}
 }
 `
 
